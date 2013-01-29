@@ -392,25 +392,34 @@ static VALUE rb_trie_node_get_full_state(VALUE self) {
  * Tries to walk down a particular branch of the Trie.  It modifies the node it is called on.
  *
  */
+ 
 static VALUE rb_trie_node_walk_bang(VALUE self, VALUE rchar) {
-	StringValue(rchar);
+    StringValue(rchar);
 
     TrieState *state;
+    long string_length  ;
+    TrieChar *char_prefix ;
+    long p;
+    Bool result;
     Data_Get_Struct(self, TrieState, state);
-
-    if(RSTRING_LEN(rchar) != 1)
-		return Qnil;
-
-    Bool result = trie_state_walk(state, *RSTRING_PTR(rchar));
     
-    if(result) {
-		rb_iv_set(self, "@state", rchar);
-		VALUE full_state = rb_iv_get(self, "@full_state");
-		rb_str_append(full_state, rchar);
-		rb_iv_set(self, "@full_state", full_state);
-		return self;
-    } else
-		return Qnil;
+    string_length = (long)NUM2LONG(rb_funcall(rchar, rb_intern("length"), 0));
+    if (string_length == 1)   {
+    char_prefix = (TrieChar*)RSTRING_PTR(rchar);
+    for (p = 0; p < RSTRING_LEN(rchar); p++) {
+        result = trie_state_walk(state, *char_prefix);
+        if (!result)
+            return Qnil;
+        char_prefix++;
+    }
+    rb_iv_set(self, "@state", rchar);
+    VALUE full_state = rb_iv_get(self, "@full_state");
+    rb_str_append(full_state, rchar);
+    rb_iv_set(self, "@full_state", full_state);
+    return self;
+    }
+    else
+      return Qnil;
 }
 
 /*
@@ -427,21 +436,30 @@ static VALUE rb_trie_node_walk(VALUE self, VALUE rchar) {
 	VALUE new_node = rb_funcall(self, rb_intern("dup"), 0);
 
     TrieState *state;
+    long string_length  ;
+    TrieChar *char_prefix ;
+    long p;
+    Bool result;
     Data_Get_Struct(new_node, TrieState, state);
 
-    if(RSTRING_LEN(rchar) != 1)
-		return Qnil;
+    string_length = (long)NUM2LONG(rb_funcall(rchar, rb_intern("length"), 0));
+    if (string_length == 1)   {
+    char_prefix = (TrieChar*)RSTRING_PTR(rchar);
+    for (p = 0; p < RSTRING_LEN(rchar); p++) {
+        result = trie_state_walk(state, *char_prefix);
+        if (!result)
+            return Qnil;
+        char_prefix++;
+    }
+    rb_iv_set(new_node, "@state", rchar);
+    VALUE full_state = rb_iv_get(new_node, "@full_state");
+    rb_str_append(full_state, rchar);
+    rb_iv_set(new_node, "@full_state", full_state);
+    return new_node;
+    }
+    else
+      return Qnil;
 
-    Bool result = trie_state_walk(state, *RSTRING_PTR(rchar));
-    
-    if(result) {
-		rb_iv_set(new_node, "@state", rchar);
-		VALUE full_state = rb_iv_get(new_node, "@full_state");
-		rb_str_append(full_state, rchar);
-		rb_iv_set(new_node, "@full_state", full_state);
-		return new_node;
-    } else
-		return Qnil;
 }
 
 /*
@@ -555,3 +573,4 @@ void Init_trie() {
     rb_define_method(cTrieNode, "terminal?", rb_trie_node_terminal, 0);
     rb_define_method(cTrieNode, "leaf?", rb_trie_node_leaf, 0);
 }
+
