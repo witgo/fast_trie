@@ -1,4 +1,5 @@
-require File.dirname(__FILE__) + '/../lib/trie'
+# coding: utf-8
+require File.dirname(__FILE__) + '/../ext/trie/trie'
 
 describe Trie do
   before :each do
@@ -85,6 +86,8 @@ describe Trie do
     before :each do
       @trie.add('abc',2)
       @trie.add('abcd',4)
+      @trie.add('中文',6)
+      @trie.add('中文zhongwen',8)
     end
 
     it 'returns all words with values beginning with a given prefix' do
@@ -92,6 +95,10 @@ describe Trie do
       children.size.should == 2
       children.should include(['abc',2])
       children.should include(['abcd',4])
+      children = @trie.children_with_values('中')
+      children.each { |e| e[0].force_encoding("UTF-8") }
+      children.should include(['中文',6])
+      children.should include(['中文zhongwen',8])
     end
 
     it 'returns nil if prefix does not exist' do
@@ -148,11 +155,13 @@ describe Trie do
     context 'when I save the populated trie to disk' do
       before(:each) do
         @trie.add('omgwtflolbbq', 123)
+        @trie.add('中文', 1234)
         @trie.save(filename_base)
       end
       
       it 'should contain the same data when reading from disk' do
         trie2 = Trie.read(filename_base)
+        trie2.get('中文').should == 1234
         trie2.get('omgwtflolbbq').should == 123
       end
     end
@@ -177,6 +186,8 @@ describe TrieNode do
     @trie.add('rocket',1)
     @trie.add('rock',2)
     @trie.add('frederico',3)
+    @trie.add('中国',4)
+    @trie.add('中国人',5)
     @node = @trie.root
   end
   
@@ -187,7 +198,12 @@ describe TrieNode do
       @node.walk!('o')
       @node.state.should == 'o'
     end
-
+    it 'returns the most recent state chinese' do
+      @node.walk!('中')
+      @node.state.should == '中'
+      @node.walk!('国')
+      @node.state.should == '国'
+    end
     it 'is nil when no walk has occurred' do
       @node.state.should == nil
     end
@@ -197,6 +213,10 @@ describe TrieNode do
     it 'returns the current string' do
       @node.walk!('r').walk!('o').walk!('c')
       @node.full_state.should == 'roc'
+    end
+     it 'returns the current chinese string' do
+      @node.walk!('中').walk!('国').walk!('人')
+      @node.full_state.should == '中国人'
     end
 
     it 'is a blank string when no walk has occurred' do
@@ -234,8 +254,8 @@ describe TrieNode do
     end
 
     it 'returns a value when the node is terminal' do
-      @node.walk!('r').walk!('o').walk!('c').walk!('k')
-      @node.value.should == 2
+      @node.walk!('中').walk!('国')
+      @node.value.should == 4
     end
   end
 
@@ -245,15 +265,24 @@ describe TrieNode do
       @node.should be_terminal
     end
 
+    it 'returns true when the node is a chinese word end' do
+      @node.walk!('中').walk!('国')
+      @node.should be_terminal
+    end
+
     it 'returns nil when the node is not a word end' do
       @node.walk!('r').walk!('o').walk!('c')
+      @node.should_not be_terminal
+    end
+    it 'returns nil when the node is not a chinese word end' do
+      @node.walk!('中')
       @node.should_not be_terminal
     end
   end
 
   describe :leaf? do
     it 'returns true when this is the end of a branch of the trie' do
-      @node.walk!('r').walk!('o').walk!('c').walk!('k').walk!('e').walk!('t')
+      @node.walk!('中').walk!('国').walk!('人')
       @node.should be_leaf
     end
 
