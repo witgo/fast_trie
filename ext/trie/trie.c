@@ -102,8 +102,11 @@ static VALUE rb_trie_get(VALUE self, VALUE key) {
     Data_Get_Struct(self, Trie, trie);
 
 	TrieData data;
-    if(trie_retrieve(trie, (TrieChar*)RSTRING_PTR(key), &data))
-		return (VALUE)data;
+    if(trie_retrieve(trie, (TrieChar*)RSTRING_PTR(key), &data)){
+        //printf("%i\n",(data));
+        //printf("%i LONG2NUM\n",(VALUE)LONG2NUM(data));
+        return LONG2NUM(data);
+    }
     else
 		return Qnil;
 }
@@ -128,7 +131,7 @@ static VALUE rb_trie_add(VALUE self, VALUE args) {
     key = RARRAY_PTR(args)[0];
 	StringValue(key);
 
-    TrieData value = size == 2 ? RARRAY_PTR(args)[1] : TRIE_DATA_ERROR;
+    TrieData value = size == 2 ? NUM2LONG(RARRAY_PTR(args)[1]) : TRIE_DATA_ERROR;
     
     if(trie_store(trie, (TrieChar*)RSTRING_PTR(key), value))
 		return Qtrue;
@@ -243,7 +246,7 @@ static VALUE walk_all_paths_with_values(Trie *trie, VALUE children, TrieState *s
 				rb_ary_push(tuple, rb_str_new2(word));
 
 				TrieData trie_data = trie_state_get_data(end_state);
-				rb_ary_push(tuple, (VALUE)trie_data);
+				rb_ary_push(tuple, LONG2NUM(trie_data));
 				rb_ary_push(children, tuple);
  
 				trie_state_free(end_state);
@@ -295,7 +298,7 @@ static VALUE rb_trie_children_with_values(VALUE self, VALUE prefix) {
 		VALUE tuple = rb_ary_new();
 		rb_ary_push(tuple, prefix);
 		TrieData trie_data = trie_state_get_data(end_state);
-		rb_ary_push(tuple, (VALUE)trie_data);
+		rb_ary_push(tuple, LONG2NUM(trie_data));
 		rb_ary_push(children, tuple);
 
 		trie_state_free(end_state);
@@ -481,7 +484,7 @@ static VALUE rb_trie_node_value(VALUE self) {
     TrieData trie_data = trie_state_get_data(dup);
     trie_state_free(dup);
 
-    return TRIE_DATA_ERROR == trie_data ? Qnil : (VALUE)trie_data;
+    return TRIE_DATA_ERROR == trie_data ? Qnil : LONG2NUM(trie_data);
 }
 
 /*

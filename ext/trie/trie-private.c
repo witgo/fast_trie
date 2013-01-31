@@ -264,36 +264,3 @@ Bool trie_state_is_leaf (const TrieState *s) {
 TrieData trie_state_get_data (const TrieState *s) {
     return s->is_suffix ? tail_get_data (s->trie->tail, s->index) : TRIE_DATA_ERROR;
 }
-
-int main(void) {
-	Bool res;
-	TrieData *data = (TrieData*)malloc(sizeof(TrieData));
-	Trie *trie = trie_new();
-
-
-	trie_store(trie, (const TrieChar*)"hello", 1);
-	trie_store(trie, (const TrieChar*)"he", 4);
-	trie_store(trie, (const TrieChar*)"hel", 3);
-	trie_store(trie, (const TrieChar*)"h", 5);
-	trie_store(trie, (const TrieChar*)"hell", 2);
-
-
-	res = trie_retrieve(trie, (const TrieChar*)"hello", data);
-	printf(res ? "Win!\n" : "Fail!\n");
-
-	res = trie_retrieve(trie, (const TrieChar*)"hell", data);
-	printf(res ? "Win!\n" : "Fail!\n");
-
-	res = trie_retrieve(trie, (const TrieChar*)"hel", data);
-	printf(res ? "Win!\n" : "Fail!\n");
-
-	res = trie_retrieve(trie, (const TrieChar*)"he", data);
-	printf(res ? "Win!\n" : "Fail!\n");
-
-	res = trie_retrieve(trie, (const TrieChar*)"h", data);
-	printf(res ? "Win!\n" : "Fail!\n");
-
-
-	trie_free(trie);
-	return 0;
-}
