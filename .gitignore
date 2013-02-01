@@ -7,3 +7,8 @@ coverage
 *~
 #*
 *.gem
+.idea/
+ext/trie/Makefile
+tmp/
+tmtags
+tmtagsHistory

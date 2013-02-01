@@ -44,6 +44,11 @@ describe Trie do
       @trie.add('chicka', 72_000).should == true
       @trie.get('chicka').should == 72_000
     end
+  	
+
+    it 'adds a word with a non-numeric value to the trie should raise error ' do
+      lambda { @trie.add('doot', 'Heeey')}.should raise_error(ArgumentError)  	
+    end
   end
 
   describe :delete do

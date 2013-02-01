@@ -126,7 +126,10 @@ static VALUE rb_trie_add(VALUE self, VALUE args) {
 	VALUE key;
 	key = RARRAY_PTR(args)[0];
 	StringValue(key);
-
+    if (size == 2 && !FIXNUM_P(RARRAY_PTR(args)[1])){
+		VALUE rb_eIOError = rb_const_get(rb_cObject, rb_intern("ArgumentError"));
+		rb_raise(rb_eIOError, "value should is a numeric");
+    } 
 	TrieData value = size == 2 ? NUM2LONG(RARRAY_PTR(args)[1]) : TRIE_DATA_ERROR;
     
 	if(trie_store(trie, (TrieChar*)RSTRING_PTR(key), value))
