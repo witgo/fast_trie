@@ -5,6 +5,9 @@
 #include "tail.h"
 #include "trie.h"
 
+static TrieState * trie_state_new (const Trie *trie, TrieIndex index, short suffix_idx, short is_suffix);
+static Bool trie_branch_in_branch (Trie *trie, TrieIndex sep_node, const TrieChar *suffix, TrieData data);
+static Bool trie_branch_in_tail(Trie *trie, TrieIndex sep_node, const TrieChar *suffix, TrieData data);
 Trie* trie_new() {
 	Trie *trie = (Trie*) malloc(sizeof(Trie));
 	trie->da = da_new();
