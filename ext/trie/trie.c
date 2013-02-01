@@ -101,7 +101,7 @@ static VALUE rb_trie_get(VALUE self, VALUE key) {
 
 	TrieData data;
 	if(trie_retrieve(trie, (TrieChar*)RSTRING_PTR(key), &data)){
-		return LONG2NUM(data);
+		return INT2NUM(data);
 	}
 	else
 		return Qnil;
@@ -126,11 +126,12 @@ static VALUE rb_trie_add(VALUE self, VALUE args) {
 	VALUE key;
 	key = RARRAY_PTR(args)[0];
 	StringValue(key);
-    if (size == 2 && !FIXNUM_P(RARRAY_PTR(args)[1])){
+	
+    if (size == 2 && TYPE( RARRAY_PTR(args)[1]) != T_FIXNUM){
 		VALUE rb_eIOError = rb_const_get(rb_cObject, rb_intern("ArgumentError"));
 		rb_raise(rb_eIOError, "value should is a numeric");
     } 
-	TrieData value = size == 2 ? NUM2LONG(RARRAY_PTR(args)[1]) : TRIE_DATA_ERROR;
+	TrieData value = size == 2 ? NUM2INT(RARRAY_PTR(args)[1]) : TRIE_DATA_ERROR;
     
 	if(trie_store(trie, (TrieChar*)RSTRING_PTR(key), value))
 		return Qtrue;
@@ -245,7 +246,7 @@ static VALUE walk_all_paths_with_values(Trie *trie, VALUE children, TrieState *s
 				rb_ary_push(tuple, rb_str_new2(word));
 
 				TrieData trie_data = trie_state_get_data(end_state);
-				rb_ary_push(tuple, LONG2NUM(trie_data));
+				rb_ary_push(tuple, INT2NUM(trie_data));
 				rb_ary_push(children, tuple);
  
 				trie_state_free(end_state);
@@ -297,7 +298,7 @@ static VALUE rb_trie_children_with_values(VALUE self, VALUE prefix) {
 		VALUE tuple = rb_ary_new();
 		rb_ary_push(tuple, prefix);
 		TrieData trie_data = trie_state_get_data(end_state);
-		rb_ary_push(tuple, LONG2NUM(trie_data));
+		rb_ary_push(tuple, INT2NUM(trie_data));
 		rb_ary_push(children, tuple);
 
 		trie_state_free(end_state);
@@ -325,14 +326,9 @@ static VALUE rb_trie_node_alloc(VALUE klass);
 static VALUE rb_trie_root(VALUE self) {
 	Trie *trie;
 	Data_Get_Struct(self, Trie, trie);
-
 	VALUE trie_node = rb_trie_node_alloc(cTrieNode);
-
 	TrieState *state = trie_root(trie);
 	RDATA(trie_node)->data = state;
-    
-	rb_iv_set(trie_node, "@state", Qnil);
-	rb_iv_set(trie_node, "@full_state", rb_str_new2(""));
 	return trie_node;
 }
 
@@ -354,37 +350,7 @@ static VALUE rb_trie_node_alloc(VALUE klass) {
 /* nodoc */
 static VALUE rb_trie_node_initialize_copy(VALUE self, VALUE from) {
 	RDATA(self)->data = trie_state_clone(RDATA(from)->data);
-    
-	VALUE state = rb_iv_get(from, "@state");
-	rb_iv_set(self, "@state", state == Qnil ? Qnil : rb_str_dup(state));
-
-	VALUE full_state = rb_iv_get(from, "@full_state");
-	rb_iv_set(self, "@full_state", full_state == Qnil ? Qnil : rb_str_dup(full_state));
-
 	return self;
-}
-
-/*
-* call-seq:
-*   state -> single character
-	*
-		* Returns the letter that the TrieNode instance points to. So, if the node is pointing at the "e" in "monkeys", the state is "e".
-			*
- */
-static VALUE rb_trie_node_get_state(VALUE self) {
-	return rb_iv_get(self, "@state");
-}
-
-/*
-* call-seq:
-*   full_state -> string
-	*
-		* Returns the full string from the root of the Trie up to this node.  So if the node pointing at the "e" in "monkeys",
-			* the full_state is "monke".
-				*
- */
-static VALUE rb_trie_node_get_full_state(VALUE self) {
-	return rb_iv_get(self, "@full_state");
 }
 
 /*
@@ -414,10 +380,6 @@ static VALUE rb_trie_node_walk_bang(VALUE self, VALUE rchar) {
 				return Qnil;
 			char_prefix++;
 		}
-		rb_iv_set(self, "@state", rchar);
-		VALUE full_state = rb_iv_get(self, "@full_state");
-		rb_str_append(full_state, rchar);
-		rb_iv_set(self, "@full_state", full_state);
 		return self;
 	}
 	else
@@ -453,10 +415,6 @@ static VALUE rb_trie_node_walk(VALUE self, VALUE rchar) {
 				return Qnil;
 			char_prefix++;
 		}
-		rb_iv_set(new_node, "@state", rchar);
-		VALUE full_state = rb_iv_get(new_node, "@full_state");
-		rb_str_append(full_state, rchar);
-		rb_iv_set(new_node, "@full_state", full_state);
 		return new_node;
 	}
 	else
@@ -483,7 +441,7 @@ static VALUE rb_trie_node_value(VALUE self) {
 	TrieData trie_data = trie_state_get_data(dup);
 	trie_state_free(dup);
 
-	return TRIE_DATA_ERROR == trie_data ? Qnil : LONG2NUM(trie_data);
+	return TRIE_DATA_ERROR == trie_data ? Qnil : INT2NUM(trie_data);
 }
 
 /*
@@ -567,8 +525,6 @@ void Init_trie() {
 	cTrieNode = rb_define_class("TrieNode", rb_cObject);
 	rb_define_alloc_func(cTrieNode, rb_trie_node_alloc);
 	rb_define_method(cTrieNode, "initialize_copy", rb_trie_node_initialize_copy, 1);
-	rb_define_method(cTrieNode, "state", rb_trie_node_get_state, 0);
-	rb_define_method(cTrieNode, "full_state", rb_trie_node_get_full_state, 0);
 	rb_define_method(cTrieNode, "walk!", rb_trie_node_walk_bang, 1);
 	rb_define_method(cTrieNode, "walk", rb_trie_node_walk, 1);
 	rb_define_method(cTrieNode, "value", rb_trie_node_value, 0);

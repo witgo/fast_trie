@@ -8,7 +8,7 @@ describe Trie do
     @trie.add('rock')
     @trie.add('frederico')
   end
-  
+
   describe :has_key? do
     it 'returns true for words in the trie' do
       @trie.has_key?('rocket').should be_true
@@ -36,7 +36,7 @@ describe Trie do
     end
 
     it 'adds a word with a weight to the trie' do
-      @trie.add('chicka',123).should == true
+      @trie.add('chicka', 123).should == true
       @trie.get('chicka').should == 123
     end
 
@@ -44,10 +44,13 @@ describe Trie do
       @trie.add('chicka', 72_000).should == true
       @trie.get('chicka').should == 72_000
     end
-  	
 
-    it 'adds a word with a non-numeric value to the trie should raise error ' do
-      lambda { @trie.add('doot', 'Heeey')}.should raise_error(ArgumentError)  	
+    it 'adds values greater than 64-bit allows should raise error' do
+      lambda { @trie.add('doot', 2**256) }.should raise_error(ArgumentError)
+    end
+
+    it 'adds a word with a non-numeric value to the trie should raise error' do
+      lambda { @trie.add('doot', 'Heeey') }.should raise_error(ArgumentError)
     end
   end
 
@@ -84,21 +87,21 @@ describe Trie do
 
   describe :children_with_values do
     before :each do
-      @trie.add('abc',2)
-      @trie.add('abcd',4)
-      @trie.add('中文',6)
-      @trie.add('中文zhongwen',8)
+      @trie.add('abc', 2)
+      @trie.add('abcd', 4)
+      @trie.add('中文', 6)
+      @trie.add('中文zhongwen', 8)
     end
 
     it 'returns all words with values beginning with a given prefix' do
       children = @trie.children_with_values('ab')
       children.size.should == 2
-      children.should include(['abc',2])
-      children.should include(['abcd',4])
+      children.should include(['abc', 2])
+      children.should include(['abcd', 4])
       children = @trie.children_with_values('中')
       children.each { |e| e[0].force_encoding("UTF-8") }
-      children.should include(['中文',6])
-      children.should include(['中文zhongwen',8])
+      children.should include(['中文', 6])
+      children.should include(['中文zhongwen', 8])
     end
 
     it 'returns nil if prefix does not exist' do
@@ -108,32 +111,14 @@ describe Trie do
     it 'includes the prefix if the prefix is a word' do
       children = @trie.children_with_values('abc')
       children.size.should == 2
-      children.should include(['abc',2])
-      children.should include(['abcd',4])
+      children.should include(['abc', 2])
+      children.should include(['abcd', 4])
     end
 
     it 'returns blank array if prefix is nil' do
       @trie.children_with_values(nil).should == []
     end
   end
-
-  #describe :walk_to_terminal do
-  #  it 'returns the first word found along a path' do
-  #    @trie.add 'anderson'
-  #    @trie.add 'andreas'
-  #    @trie.add 'and'
-
-  #    @trie.walk_to_terminal('anderson').should == 'and'
-  #  end
-
-  #  it 'returns the first word and value along a path' do
-  #    @trie.add 'anderson'
-  #    @trie.add 'andreas'
-  #    @trie.add 'and', 15
-
-  #    @trie.walk_to_terminal('anderson',true).should == ['and', 15]
-  #  end
-  #end
 
   describe :root do
     it 'returns a TrieNode' do
@@ -151,14 +136,14 @@ describe Trie do
       FileUtils.mkdir_p(dir)
       File.join(dir, 'trie')
     end
-    
+
     context 'when I save the populated trie to disk' do
       before(:each) do
         @trie.add('omgwtflolbbq', 123)
         @trie.add('中文', 1234)
         @trie.save(filename_base)
       end
-      
+
       it 'should contain the same data when reading from disk' do
         trie2 = Trie.read(filename_base)
         trie2.get('中文').should == 1234
@@ -166,13 +151,13 @@ describe Trie do
       end
     end
   end
-  
+
   describe :read do
     context 'when the files to read from do not exist' do
       let(:filename_base) do
         "phantasy/file/path/that/does/not/exist"
       end
-      
+
       it 'should raise an error when attempting a read' do
         lambda { Trie.read(filename_base) }.should raise_error(IOError)
       end
@@ -183,47 +168,25 @@ end
 describe TrieNode do
   before :each do
     @trie = Trie.new;
-    @trie.add('rocket',1)
-    @trie.add('rock',2)
-    @trie.add('frederico',3)
-    @trie.add('中国',4)
-    @trie.add('中国人',5)
+    @trie.add('rocket', 1)
+    @trie.add('rock', 2)
+    @trie.add('frederico', 3)
+    @trie.add('中国', 4)
+    @trie.add('中国人', 5)
     @node = @trie.root
   end
-  
+
   describe :state do
     it 'returns the most recent state character' do
       @node.walk!('r')
-      @node.state.should == 'r'
       @node.walk!('o')
-      @node.state.should == 'o'
     end
     it 'returns the most recent state chinese' do
       @node.walk!('中')
-      @node.state.should == '中'
       @node.walk!('国')
-      @node.state.should == '国'
-    end
-    it 'is nil when no walk has occurred' do
-      @node.state.should == nil
     end
   end
 
-  describe :full_state do
-    it 'returns the current string' do
-      @node.walk!('r').walk!('o').walk!('c')
-      @node.full_state.should == 'roc'
-    end
-     it 'returns the current chinese string' do
-      @node.walk!('中').walk!('国').walk!('人')
-      @node.full_state.should == '中国人'
-    end
-
-    it 'is a blank string when no walk has occurred' do
-      @node.full_state.should == ''
-    end
-  end
-  
   describe :walk! do
     it 'returns the updated object when the walk succeeds' do
       other = @node.walk!('r')
@@ -296,16 +259,6 @@ describe TrieNode do
     it 'creates a new instance of this node which is not this node' do
       new_node = @node.clone
       new_node.should_not == @node
-    end
-
-    it 'matches the state of the current node' do
-      new_node = @node.clone
-      new_node.state.should == @node.state
-    end
-
-    it 'matches the full_state of the current node' do
-      new_node = @node.clone
-      new_node.full_state.should == @node.full_state
     end
   end
 end
